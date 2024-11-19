@@ -1,48 +1,69 @@
-# Evidence Template Project
+# Deploy Evidence to GitHub Pages
 
-## Using Codespaces
+## Add a basePath to evidence.config.yaml
 
-If you are using this template in Codespaces, click the `Start Evidence` button in the bottom status bar. This will install dependencies and open a preview of your project in your browser - you should get a popup prompting you to open in browser.
-
-Or you can use the following commands to get started:
-
-```bash
-npm install
-npm run sources
-npm run dev -- --host 0.0.0.0
+```yaml
+deployment:
+  basePath: /github-pages-evidence
 ```
 
-See [the CLI docs](https://docs.evidence.dev/cli/) for more command information.
+## Update the build command in package.json
 
-**Note:** Codespaces is much faster on the Desktop app. After the Codespace has booted, select the hamburger menu → Open in VS Code Desktop.
-
-## Get Started from VS Code
-
-The easiest way to get started is using the [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=Evidence.evidence-vscode):
-
-
-
-1. Install the extension from the VS Code Marketplace
-2. Open the Command Palette (Ctrl/Cmd + Shift + P) and enter `Evidence: New Evidence Project`
-3. Click `Start Evidence` in the bottom status bar
-
-## Get Started using the CLI
-
-```bash
-npx degit evidence-dev/template my-project
-cd my-project 
-npm install 
-npm run sources
-npm run dev 
+```json
+"build": "EVIDENCE_BUILD_DIR=./build/github-pages-evidence evidence build"
 ```
 
-Check out the docs for [alternative install methods](https://docs.evidence.dev/getting-started/install-evidence) including Docker, Github Codespaces, and alongside dbt.
+## Add a workflow to deploy to GitHub Pages
 
+```yaml
+name: Deploy to GitHub Pages
 
+on:
+  push:
+    branches: "main"
 
-## Learning More
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
 
-- [Docs](https://docs.evidence.dev/)
-- [Github](https://github.com/evidence-dev/evidence)
-- [Slack Community](https://slack.evidence.dev/)
-- [Evidence Home Page](https://www.evidence.dev)
+      - name: Install dependencies
+        run: npm install
+
+      - name: build
+        env:
+          BASE_PATH: "/${{ github.event.repository.name }}"
+        run: |
+          npm run sources
+          npm run build
+
+      - name: Upload Artifacts
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # this should match the `pages` option in your adapter-static options
+          path: "build/github-pages-evidence"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+```
