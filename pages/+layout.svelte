@@ -5,6 +5,6 @@
 	export let data;
 </script>
 
-<EvidenceDefaultLayout {data} githubRepo=https://github.com/archiewood/github-pages-evidence/>
+<EvidenceDefaultLayout {data} githubRepo="https://github.com/archiewood/github-pages-evidence" />
 	<slot slot="content" />
 </EvidenceDefaultLayout>
